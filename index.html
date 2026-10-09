@@ -1,0 +1,1456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Household Expense & Retirement Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0f1419;
+      --surface: #1a2332;
+      --surface2: #243044;
+      --border: #2d3a4f;
+      --text: #e7ecf3;
+      --muted: #8b9bb4;
+      --accent: #3b82f6;
+      --accent2: #22c55e;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --roth: #8b5cf6;
+      --trad: #06b6d4;
+      --taxable: #f97316;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    header {
+      background: linear-gradient(135deg, #1e3a5f 0%, #0f1419 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+    }
+    header h1 {
+      font-size: 1.35rem;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+    header p { color: var(--muted); font-size: 0.875rem; }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      gap: 1.5rem;
+    }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+    @media (max-width: 960px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+    }
+    .card h2 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .card h2 .badge {
+      font-size: 0.7rem;
+      background: var(--surface2);
+      color: var(--muted);
+      padding: 0.15rem 0.5rem;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 0.25rem;
+    }
+    input[type="number"], input[type="text"], select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+    .form-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 0.75rem;
+    }
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .btn:hover { background: #2563eb; }
+    .btn:active { transform: scale(0.98); }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
+    .btn-danger { background: var(--danger); }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-icon {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      width: 28px;
+      height: 28px;
+      padding: 0;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.75rem;
+      line-height: 1;
+    }
+    .btn-icon:hover { background: var(--surface2); color: var(--text); }
+    .btn-icon:disabled { opacity: 0.35; cursor: not-allowed; }
+    .move-btns { display: flex; gap: 2px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+    }
+    th, td {
+      padding: 0.6rem 0.5rem;
+      text-align: left;
+      border-bottom: 1px solid var(--border);
+    }
+    th {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    td input {
+      width: 100%;
+      min-width: 80px;
+    }
+    .totals-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1.5rem;
+      margin-top: 1rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+    }
+    .stat {
+      flex: 1;
+      min-width: 140px;
+    }
+    .stat .label { font-size: 0.75rem; color: var(--muted); }
+    .stat .value {
+      font-size: 1.35rem;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .stat .value.green { color: var(--accent2); }
+    .stat .value.blue { color: var(--accent); }
+    .stat .value.orange { color: var(--warning); }
+    .account-type {
+      display: inline-block;
+      padding: 0.15rem 0.5rem;
+      border-radius: 6px;
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .type-roth { background: rgba(139,92,246,0.2); color: var(--roth); }
+    .type-trad { background: rgba(6,182,212,0.2); color: var(--trad); }
+    .type-taxable { background: rgba(249,115,22,0.2); color: var(--taxable); }
+    .chart-wrap {
+      position: relative;
+      height: 280px;
+      margin-top: 1rem;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+    .strategy-box {
+      background: var(--surface2);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 1rem;
+      font-size: 0.875rem;
+    }
+    .strategy-box h3 {
+      font-size: 0.9rem;
+      margin-bottom: 0.5rem;
+      color: var(--accent2);
+    }
+    .strategy-box ol { padding-left: 1.25rem; }
+    .strategy-box li { margin-bottom: 0.35rem; }
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      margin-bottom: 1rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.5rem;
+    }
+    .tab {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .tab.active {
+      background: var(--surface2);
+      color: var(--text);
+    }
+    .hidden { display: none !important; }
+    .actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+    .currency::before { content: "$"; }
+    footer {
+      text-align: center;
+      padding: 1.5rem;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+    .savings-note {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      font-size: 0.85rem;
+      margin-top: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Household Expense & Retirement Dashboard</h1>
+      <p>Dynamic forecasting · Working vs. Retirement · Tax-efficient withdrawals</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-ghost btn-sm" onclick="resetDefaults()">Reset defaults</button>
+      <button class="btn btn-ghost btn-sm" onclick="clearSavedData()" title="Remove auto-saved data from this browser">Clear saved</button>
+      <button class="btn btn-sm" onclick="exportJSON()">Export data</button>
+      <button class="btn btn-ghost btn-sm" onclick="copyDataToClipboard()" title="Copy all numbers as JSON — paste on another device">Copy data</button>
+      <label class="btn btn-ghost btn-sm" style="cursor:pointer;margin:0">
+        Import file
+        <input type="file" accept=".json" onchange="importJSON(event)" style="display:none" />
+      </label>
+      <button class="btn btn-ghost btn-sm" onclick="pasteDataFromClipboard()" title="Paste JSON copied from another device">Paste data</button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- ASSUMPTIONS -->
+    <div class="card">
+      <h2>Assumptions <span class="badge">global</span></h2>
+      <div class="form-row">
+        <div>
+          <label>Current age</label>
+          <input type="number" id="currentAge" value="45" min="18" max="100" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Retirement age</label>
+          <input type="number" id="retireAge" value="65" min="40" max="100" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Life expectancy</label>
+          <input type="number" id="lifeExpect" value="90" min="60" max="120" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Inflation rate (%)</label>
+          <input type="number" id="inflation" value="2.5" step="0.1" min="0" max="15" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Expected portfolio return (%)</label>
+          <input type="number" id="portfolioReturn" value="6.5" step="0.1" min="0" max="20" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Federal tax bracket (retirement %)</label>
+          <input type="number" id="taxBracket" value="22" step="1" min="0" max="50" oninput="recalc()" />
+        </div>
+        <div>
+          <label>State tax rate (%)</label>
+          <input type="number" id="stateTax" value="5" step="0.1" min="0" max="15" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Social Security (annual, today’s $)</label>
+          <input type="number" id="ssIncome" value="28000" step="1000" min="0" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Pension (annual, today’s $)</label>
+          <input type="number" id="pensionIncome" value="0" step="1000" min="0" oninput="recalc()" />
+        </div>
+      </div>
+      <p class="hint">All expense figures are entered in today’s dollars. Projections inflate them automatically. Pension and Social Security are treated as retirement income (taxable as ordinary income unless noted).</p>
+    </div>
+
+    <!-- EXPENSES -->
+    <div class="card">
+      <h2>Household Expenses <span class="badge">monthly, today’s $</span></h2>
+      <div class="tabs">
+        <button class="tab active" data-tab="working" onclick="switchExpenseTab('working')">While Working</button>
+        <button class="tab" data-tab="retirement" onclick="switchExpenseTab('retirement')">In Retirement</button>
+      </div>
+
+      <div id="expense-working">
+        <table id="table-working">
+          <thead>
+            <tr>
+              <th style="width:26%">Category</th>
+              <th>Amount ($/mo)</th>
+              <th>Notes</th>
+              <th style="width:90px">Order</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions">
+          <button class="btn btn-sm" onclick="addExpense('working')">+ Add expense</button>
+        </div>
+        <div class="totals-bar">
+          <div class="stat">
+            <div class="label">Monthly total (working)</div>
+            <div class="value blue" id="total-working-mo">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Annual total (working)</div>
+            <div class="value blue" id="total-working-yr">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Years until retirement</div>
+            <div class="value" id="years-to-retire">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Lifetime remaining cost to retirement (inflated)</div>
+            <div class="value orange" id="lifetime-working">$0</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="expense-retirement" class="hidden">
+        <table id="table-retirement">
+          <thead>
+            <tr>
+              <th style="width:26%">Category</th>
+              <th>Amount ($/mo)</th>
+              <th>Notes</th>
+              <th style="width:90px">Order</th>
+              <th style="width:50px"></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <div class="actions">
+          <button class="btn btn-sm" onclick="addExpense('retirement')">+ Add expense</button>
+          <button class="btn btn-ghost btn-sm" onclick="copyWorkingToRetirement()">Copy from working</button>
+        </div>
+        <div class="totals-bar">
+          <div class="stat">
+            <div class="label">Monthly total (retirement)</div>
+            <div class="value green" id="total-retire-mo">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Annual total (retirement)</div>
+            <div class="value green" id="total-retire-yr">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Years in retirement</div>
+            <div class="value" id="years-in-retire">0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Lifetime retirement cost (inflated)</div>
+            <div class="value orange" id="lifetime-retire">$0</div>
+          </div>
+        </div>
+        <div class="savings-note" id="expense-delta"></div>
+      </div>
+    </div>
+
+    <!-- RETIREMENT ACCOUNTS -->
+    <div class="card">
+      <h2>Retirement Accounts <span class="badge">tax treatment & growth</span></h2>
+      <table id="table-accounts">
+        <thead>
+          <tr>
+            <th>Account name</th>
+            <th>Type</th>
+            <th>Balance ($)</th>
+            <th>Annual contrib. ($)</th>
+            <th>Expected return (%)</th>
+            <th style="width:60px"></th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="actions">
+        <button class="btn btn-sm" onclick="addAccount()">+ Add account</button>
+      </div>
+      <div class="totals-bar">
+        <div class="stat">
+          <div class="label">Total current balance</div>
+          <div class="value blue" id="total-balance">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Projected at retirement (pre-tax)</div>
+          <div class="value green" id="proj-at-retire">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Roth / tax-free share</div>
+          <div class="value" id="roth-share">0%</div>
+        </div>
+        <div class="stat">
+          <div class="label">Tax-deferred share</div>
+          <div class="value" id="trad-share">0%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROTH CONVERSION PLANNER -->
+    <div class="card">
+      <h2>Roth Conversion Strategy <span class="badge">Traditional → Roth</span></h2>
+      <p class="hint" style="margin-bottom:1rem">Convert traditional 401(k)/IRA dollars to Roth in lower-tax years to reduce future RMDs and grow tax-free. Tax is typically paid from taxable accounts or cash.</p>
+      <div class="form-row">
+        <div>
+          <label>Annual conversion amount (today’s $)</label>
+          <input type="number" id="rothConvertAmt" value="15000" step="1000" min="0" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Years of conversions (before / early retirement)</label>
+          <input type="number" id="rothConvertYears" value="10" min="0" max="30" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Tax rate on conversions (%)</label>
+          <input type="number" id="rothConvertTax" value="22" step="1" min="0" max="50" oninput="recalc()" />
+        </div>
+        <div>
+          <label>Start conversions at age</label>
+          <input type="number" id="rothConvertStartAge" value="55" min="18" max="100" oninput="recalc()" />
+        </div>
+      </div>
+      <div class="totals-bar">
+        <div class="stat">
+          <div class="label">Total converted (nominal)</div>
+          <div class="value blue" id="total-converted">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Est. tax paid on conversions</div>
+          <div class="value orange" id="convert-tax-paid">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Extra Roth at retirement (from conversions)</div>
+          <div class="value green" id="extra-roth">$0</div>
+        </div>
+        <div class="stat">
+          <div class="label">Traditional reduced by</div>
+          <div class="value" id="trad-reduced">$0</div>
+        </div>
+      </div>
+      <div class="strategy-box" id="conversion-guidance" style="margin-top:1rem">
+        <!-- filled by JS -->
+      </div>
+    </div>
+
+    <!-- PROJECTIONS & TAX STRATEGY -->
+    <div class="grid-2">
+      <div class="card">
+        <h2>Spending vs. Portfolio Projection</h2>
+        <div class="chart-wrap">
+          <canvas id="projChart"></canvas>
+        </div>
+        <div class="totals-bar">
+          <div class="stat">
+            <div class="label">First-year retirement need (inflated)</div>
+            <div class="value orange" id="first-yr-need">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Safe withdrawal (4% of portfolio)</div>
+            <div class="value green" id="safe-wd">$0</div>
+          </div>
+          <div class="stat">
+            <div class="label">Coverage ratio</div>
+            <div class="value" id="coverage">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Tax-Efficient Withdrawal Strategy</h2>
+        <div class="strategy-box" id="strategy-content">
+          <!-- filled by JS -->
+        </div>
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="bucketChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- YEAR-BY-YEAR SUMMARY -->
+    <div class="card">
+      <h2>Retirement Year-by-Year Snapshot <span class="badge">first 15 years</span></h2>
+      <div style="overflow-x:auto">
+        <table id="table-yearly">
+          <thead>
+            <tr>
+              <th>Age</th>
+              <th>Spending need</th>
+              <th>SS + Pension</th>
+              <th>Net need</th>
+              <th>From Roth</th>
+              <th>From Traditional</th>
+              <th>From Taxable</th>
+              <th>Est. tax on WD</th>
+              <th>Ending portfolio</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="hint">Withdrawal order prioritizes tax efficiency: Taxable (basis first) → Traditional (to fill lower brackets) → Roth (last). Adjust strategy in assumptions as needed.</p>
+    </div>
+
+    <!-- CLOUD SYNC -->
+    <div class="card" id="cloud-sync-card">
+      <h2>Cloud Sync <span class="badge">Cloudflare KV</span></h2>
+      <p class="hint" style="margin-bottom:1rem">
+        Save your numbers to Cloudflare so every device loads the same data automatically.
+        Use a private <strong>Sync Code</strong> (like a password). Anyone with the code can read/write your data — treat it as a secret.
+      </p>
+      <div class="form-row">
+        <div style="grid-column: 1 / -1; max-width: 420px;">
+          <label>Sync Code (keep private)</label>
+          <input type="text" id="syncCode" placeholder="e.g. my-family-2026-x7k9" autocomplete="off" spellcheck="false" />
+        </div>
+      </div>
+      <div class="actions" style="margin-top:0.5rem;">
+        <button class="btn btn-sm" onclick="generateSyncCode()">Generate code</button>
+        <button class="btn btn-sm" onclick="cloudSave()">Save to cloud</button>
+        <button class="btn btn-ghost btn-sm" onclick="cloudLoad()">Load from cloud</button>
+      </div>
+      <div style="margin-top:0.75rem;">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer;color:var(--text);">
+          <input type="checkbox" id="autoCloudSync" onchange="onAutoCloudToggle()" style="width:auto;" />
+          Auto-save to cloud when numbers change
+        </label>
+      </div>
+      <p class="hint" id="cloudSyncStatus" style="margin-top:0.75rem;">Status: not connected — enter a Sync Code and click Save or Load</p>
+    </div>
+  </div>
+
+  <footer>
+    All calculations run locally. Auto-saved on this device. Use <strong>Cloud Sync</strong> above to keep devices in sync via Cloudflare — no JSON files needed.
+  </footer>
+
+  <script>
+    // ---------- DEFAULT DATA ----------
+    const defaultExpensesWorking = [
+      { id: 1, cat: "Housing (mortgage/rent)", amt: 2200, notes: "" },
+      { id: 2, cat: "Utilities & internet", amt: 280, notes: "" },
+      { id: 3, cat: "Groceries & dining", amt: 800, notes: "" },
+      { id: 4, cat: "Transportation", amt: 450, notes: "car + fuel + insurance" },
+      { id: 5, cat: "Healthcare / insurance", amt: 350, notes: "premiums + out-of-pocket" },
+      { id: 6, cat: "Childcare / education", amt: 0, notes: "" },
+      { id: 7, cat: "Entertainment & travel", amt: 300, notes: "" },
+      { id: 8, cat: "Subscriptions & misc", amt: 150, notes: "" },
+    ];
+
+    const defaultExpensesRetire = [
+      { id: 1, cat: "Housing (mortgage/rent)", amt: 1800, notes: "assume paid off or downsized" },
+      { id: 2, cat: "Utilities & internet", amt: 260, notes: "" },
+      { id: 3, cat: "Groceries & dining", amt: 700, notes: "" },
+      { id: 4, cat: "Transportation", amt: 300, notes: "fewer miles" },
+      { id: 5, cat: "Healthcare / insurance", amt: 550, notes: "Medicare + supplements" },
+      { id: 6, cat: "Childcare / education", amt: 0, notes: "" },
+      { id: 7, cat: "Entertainment & travel", amt: 500, notes: "more travel" },
+      { id: 8, cat: "Subscriptions & misc", amt: 120, notes: "" },
+    ];
+
+    const defaultAccounts = [
+      { id: 1, name: "401(k) / Traditional", type: "trad", balance: 320000, contrib: 18000, ret: 6.5 },
+      { id: 2, name: "Roth IRA", type: "roth", balance: 95000, contrib: 7000, ret: 6.5 },
+      { id: 3, name: "Taxable brokerage", type: "taxable", balance: 110000, contrib: 6000, ret: 6.0 },
+      { id: 4, name: "HSA", type: "roth", balance: 28000, contrib: 4150, ret: 5.5 },
+    ];
+
+    let expensesWorking = structuredClone(defaultExpensesWorking);
+    let expensesRetire = structuredClone(defaultExpensesRetire);
+    let accounts = structuredClone(defaultAccounts);
+    let nextId = 100;
+
+    let projChart = null;
+    let bucketChart = null;
+
+    // ---------- HELPERS ----------
+    const fmt = (n) => {
+      if (!isFinite(n)) return "—";
+      return "$" + Math.round(n).toLocaleString("en-US");
+    };
+    const pct = (n) => (isFinite(n) ? (n * 100).toFixed(1) + "%" : "—");
+
+    function getAssumptions() {
+      return {
+        currentAge: +document.getElementById("currentAge").value || 45,
+        retireAge: +document.getElementById("retireAge").value || 65,
+        lifeExpect: +document.getElementById("lifeExpect").value || 90,
+        inflation: (+document.getElementById("inflation").value || 2.5) / 100,
+        portfolioReturn: (+document.getElementById("portfolioReturn").value || 6.5) / 100,
+        taxBracket: (+document.getElementById("taxBracket").value || 22) / 100,
+        stateTax: (+document.getElementById("stateTax").value || 5) / 100,
+        ssIncome: +document.getElementById("ssIncome").value || 0,
+        pensionIncome: +document.getElementById("pensionIncome").value || 0,
+        rothConvertAmt: +document.getElementById("rothConvertAmt").value || 0,
+        rothConvertYears: +document.getElementById("rothConvertYears").value || 0,
+        rothConvertTax: (+document.getElementById("rothConvertTax").value || 22) / 100,
+        rothConvertStartAge: +document.getElementById("rothConvertStartAge").value || 55,
+      };
+    }
+
+    // ---------- EXPENSE TABLES ----------
+    function switchExpenseTab(tab) {
+      document.querySelectorAll(".tab").forEach(t => t.classList.toggle("active", t.dataset.tab === tab));
+      document.getElementById("expense-working").classList.toggle("hidden", tab !== "working");
+      document.getElementById("expense-retirement").classList.toggle("hidden", tab !== "retirement");
+    }
+
+    function renderExpenseTable(which) {
+      const data = which === "working" ? expensesWorking : expensesRetire;
+      const tbody = document.querySelector(`#table-${which} tbody`);
+      tbody.innerHTML = "";
+      data.forEach((row, idx) => {
+        const tr = document.createElement("tr");
+        const isFirst = idx === 0;
+        const isLast = idx === data.length - 1;
+        tr.innerHTML = `
+          <td><input type="text" value="${row.cat}" onchange="updateExpense('${which}',${idx},'cat',this.value)" /></td>
+          <td><input type="number" value="${row.amt}" min="0" step="10" oninput="updateExpense('${which}',${idx},'amt',+this.value)" /></td>
+          <td><input type="text" value="${row.notes || ''}" onchange="updateExpense('${which}',${idx},'notes',this.value)" /></td>
+          <td>
+            <div class="move-btns">
+              <button class="btn-icon" title="Move up" ${isFirst ? "disabled" : ""} onclick="moveExpense('${which}',${idx},-1)">↑</button>
+              <button class="btn-icon" title="Move down" ${isLast ? "disabled" : ""} onclick="moveExpense('${which}',${idx},1)">↓</button>
+            </div>
+          </td>
+          <td><button class="btn btn-ghost btn-sm btn-danger" onclick="removeExpense('${which}',${idx})">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function moveExpense(which, idx, direction) {
+      const data = which === "working" ? expensesWorking : expensesRetire;
+      const newIdx = idx + direction;
+      if (newIdx < 0 || newIdx >= data.length) return;
+      const temp = data[idx];
+      data[idx] = data[newIdx];
+      data[newIdx] = temp;
+      renderExpenseTable(which);
+      // no full recalc needed for order-only change, but safe
+    }
+
+    function updateExpense(which, idx, field, val) {
+      const data = which === "working" ? expensesWorking : expensesRetire;
+      data[idx][field] = val;
+      recalc();
+    }
+
+    function addExpense(which) {
+      const data = which === "working" ? expensesWorking : expensesRetire;
+      data.push({ id: nextId++, cat: "New category", amt: 0, notes: "" });
+      renderExpenseTable(which);
+      recalc();
+    }
+
+    function removeExpense(which, idx) {
+      const data = which === "working" ? expensesWorking : expensesRetire;
+      data.splice(idx, 1);
+      renderExpenseTable(which);
+      recalc();
+    }
+
+    function copyWorkingToRetirement() {
+      expensesRetire = expensesWorking.map(e => ({ ...e, id: nextId++ }));
+      renderExpenseTable("retirement");
+      recalc();
+    }
+
+    // ---------- ACCOUNTS ----------
+    function renderAccounts() {
+      const tbody = document.querySelector("#table-accounts tbody");
+      tbody.innerHTML = "";
+      accounts.forEach((a, idx) => {
+        const typeClass = a.type === "roth" ? "type-roth" : a.type === "trad" ? "type-trad" : "type-taxable";
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td><input type="text" value="${a.name}" onchange="updateAccount(${idx},'name',this.value)" /></td>
+          <td>
+            <select onchange="updateAccount(${idx},'type',this.value)">
+              <option value="roth" ${a.type==="roth"?"selected":""}>Roth / Tax-free</option>
+              <option value="trad" ${a.type==="trad"?"selected":""}>Traditional / Tax-deferred</option>
+              <option value="taxable" ${a.type==="taxable"?"selected":""}>Taxable</option>
+            </select>
+          </td>
+          <td><input type="number" value="${a.balance}" min="0" step="1000" oninput="updateAccount(${idx},'balance',+this.value)" /></td>
+          <td><input type="number" value="${a.contrib}" min="0" step="500" oninput="updateAccount(${idx},'contrib',+this.value)" /></td>
+          <td><input type="number" value="${a.ret}" min="0" max="20" step="0.1" oninput="updateAccount(${idx},'ret',+this.value)" /></td>
+          <td><button class="btn btn-ghost btn-sm btn-danger" onclick="removeAccount(${idx})">✕</button></td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function updateAccount(idx, field, val) {
+      accounts[idx][field] = val;
+      recalc();
+    }
+
+    function addAccount() {
+      accounts.push({ id: nextId++, name: "New account", type: "trad", balance: 0, contrib: 0, ret: 6.5 });
+      renderAccounts();
+      recalc();
+    }
+
+    function removeAccount(idx) {
+      accounts.splice(idx, 1);
+      renderAccounts();
+      recalc();
+    }
+
+    // ---------- CORE CALCULATIONS ----------
+    function futureValue(pv, pmt, r, n) {
+      if (r === 0) return pv + pmt * n;
+      return pv * Math.pow(1 + r, n) + pmt * (Math.pow(1 + r, n) - 1) / r;
+    }
+
+    function inflate(amount, rate, years) {
+      return amount * Math.pow(1 + rate, years);
+    }
+
+    function sumExpenses(data) {
+      return data.reduce((s, e) => s + (e.amt || 0), 0);
+    }
+
+    function recalc() {
+      const a = getAssumptions();
+      const yrsToRetire = Math.max(0, a.retireAge - a.currentAge);
+      const yrsInRetire = Math.max(0, a.lifeExpect - a.retireAge);
+
+      // Expense totals (today's $)
+      const moWork = sumExpenses(expensesWorking);
+      const moRet = sumExpenses(expensesRetire);
+      const yrWork = moWork * 12;
+      const yrRet = moRet * 12;
+
+      document.getElementById("total-working-mo").textContent = fmt(moWork);
+      document.getElementById("total-working-yr").textContent = fmt(yrWork);
+      document.getElementById("total-retire-mo").textContent = fmt(moRet);
+      document.getElementById("total-retire-yr").textContent = fmt(yrRet);
+      document.getElementById("years-to-retire").textContent = yrsToRetire;
+      document.getElementById("years-in-retire").textContent = yrsInRetire;
+
+      // Lifetime costs (inflated)
+      let lifeWork = 0;
+      for (let y = 0; y < yrsToRetire; y++) {
+        lifeWork += inflate(yrWork, a.inflation, y);
+      }
+      let lifeRet = 0;
+      for (let y = 0; y < yrsInRetire; y++) {
+        lifeRet += inflate(yrRet, a.inflation, yrsToRetire + y);
+      }
+      document.getElementById("lifetime-working").textContent = fmt(lifeWork);
+      document.getElementById("lifetime-retire").textContent = fmt(lifeRet);
+
+      const deltaPct = yrWork > 0 ? ((yrRet - yrWork) / yrWork) : 0;
+      const deltaEl = document.getElementById("expense-delta");
+      if (deltaPct < -0.01) {
+        deltaEl.innerHTML = `Retirement spending is <strong>${pct(Math.abs(deltaPct))} lower</strong> than working years (common after mortgage payoff & lower commuting).`;
+      } else if (deltaPct > 0.01) {
+        deltaEl.innerHTML = `Retirement spending is <strong>${pct(deltaPct)} higher</strong> than working years (travel, healthcare, hobbies).`;
+      } else {
+        deltaEl.innerHTML = `Retirement spending is roughly the same as working years.`;
+      }
+
+      // Portfolio projection (base growth without conversions)
+      let totalNow = 0;
+      let rothNow = 0, tradNow = 0, taxableNow = 0;
+      let rothProj = 0, tradProj = 0, taxableProj = 0;
+
+      accounts.forEach(acc => {
+        const r = (acc.ret || 0) / 100;
+        const fv = futureValue(acc.balance || 0, acc.contrib || 0, r, yrsToRetire);
+        totalNow += acc.balance || 0;
+        if (acc.type === "roth") { rothNow += acc.balance || 0; rothProj += fv; }
+        else if (acc.type === "trad") { tradNow += acc.balance || 0; tradProj += fv; }
+        else { taxableNow += acc.balance || 0; taxableProj += fv; }
+      });
+
+      // --- Roth conversion modeling ---
+      // Convert from Traditional during the conversion window; money moves to Roth and grows at portfolio return.
+      // Tax is assumed paid from outside (taxable/cash) so we do not reduce the converted principal.
+      let convertTotal = 0;
+      let convertTaxPaid = 0;
+      let extraRothFromConvert = 0;
+      let tradReduced = 0;
+
+      const convertStart = Math.max(a.currentAge, a.rothConvertStartAge);
+      const convertEnd = convertStart + a.rothConvertYears;
+      const yearsOfConversion = Math.max(0, Math.min(a.rothConvertYears, a.retireAge - convertStart));
+
+      if (a.rothConvertAmt > 0 && yearsOfConversion > 0 && tradProj > 0) {
+        // Approximate: each year convert inflated amount, remaining years grow at portfolio return
+        for (let i = 0; i < yearsOfConversion; i++) {
+          const ageAtConvert = convertStart + i;
+          const yearsFromNow = ageAtConvert - a.currentAge;
+          const yearsToRetireAfter = Math.max(0, a.retireAge - ageAtConvert);
+          const amt = inflate(a.rothConvertAmt, a.inflation, Math.max(0, yearsFromNow));
+          // Cap at remaining trad (simplified)
+          const actualConvert = Math.min(amt, tradProj - tradReduced);
+          if (actualConvert <= 0) break;
+          convertTotal += actualConvert;
+          convertTaxPaid += actualConvert * a.rothConvertTax;
+          tradReduced += actualConvert;
+          // Converted amount grows tax-free until retirement
+          extraRothFromConvert += actualConvert * Math.pow(1 + a.portfolioReturn, yearsToRetireAfter);
+        }
+      }
+
+      // Apply conversion impact to projected buckets at retirement
+      rothProj += extraRothFromConvert;
+      tradProj = Math.max(0, tradProj - tradReduced);
+      const projRetire = rothProj + tradProj + taxableProj;
+
+      document.getElementById("total-balance").textContent = fmt(totalNow);
+      document.getElementById("proj-at-retire").textContent = fmt(projRetire);
+      document.getElementById("roth-share").textContent = totalNow > 0 ? pct(rothNow / totalNow) : "0%";
+      document.getElementById("trad-share").textContent = totalNow > 0 ? pct(tradNow / totalNow) : "0%";
+
+      // Roth conversion summary UI
+      document.getElementById("total-converted").textContent = fmt(convertTotal);
+      document.getElementById("convert-tax-paid").textContent = fmt(convertTaxPaid);
+      document.getElementById("extra-roth").textContent = fmt(extraRothFromConvert);
+      document.getElementById("trad-reduced").textContent = fmt(tradReduced);
+      renderConversionGuidance(a, { convertTotal, convertTaxPaid, extraRothFromConvert, tradReduced, yearsOfConversion, projRetire, rothProj });
+
+      const firstYrNeed = inflate(yrRet, a.inflation, yrsToRetire);
+      const safeWd = projRetire * 0.04;
+      document.getElementById("first-yr-need").textContent = fmt(firstYrNeed);
+      document.getElementById("safe-wd").textContent = fmt(safeWd);
+      const coverage = safeWd > 0 ? firstYrNeed / safeWd : Infinity;
+      const covEl = document.getElementById("coverage");
+      if (coverage <= 1) {
+        covEl.textContent = pct(1 / coverage) + " covered";
+        covEl.style.color = "var(--accent2)";
+      } else {
+        covEl.textContent = pct(coverage) + " of safe WD needed";
+        covEl.style.color = "var(--warning)";
+      }
+
+      // Strategy text
+      renderStrategy(a, { rothProj, tradProj, taxableProj, firstYrNeed, projRetire });
+
+      // Charts & yearly table
+      buildProjectionChart(a, yrWork, yrRet, { rothProj, tradProj, taxableProj, projRetire });
+      buildBucketChart({ roth: rothProj, trad: tradProj, taxable: taxableProj });
+      buildYearlyTable(a, yrRet, { roth: rothProj, trad: tradProj, taxable: taxableProj });
+
+      // Auto-save everything to this browser
+      saveToLocalStorage();
+      // Optional cloud auto-save (debounced)
+      scheduleCloudSave();
+    }
+
+    function renderConversionGuidance(a, c) {
+      const el = document.getElementById("conversion-guidance");
+      if (!c.yearsOfConversion || c.convertTotal <= 0) {
+        el.innerHTML = `<h3>Conversion guidance</h3><p>Set an annual conversion amount and number of years above to model moving Traditional 401(k)/IRA dollars into Roth.</p>
+        <p class="hint">Best windows: after leaving high-earning years, before Social Security and RMDs begin, and while you are still in a lower tax bracket.</p>`;
+        return;
+      }
+      const effectiveTax = c.convertTotal > 0 ? (c.convertTaxPaid / c.convertTotal) : 0;
+      el.innerHTML = `
+        <h3>Your conversion plan summary</h3>
+        <ol>
+          <li>Convert <strong>${fmt(a.rothConvertAmt)}</strong>/year (today’s $) for <strong>${c.yearsOfConversion}</strong> year(s) starting at age <strong>${a.rothConvertStartAge}</strong>.</li>
+          <li>Estimated tax cost: <strong>${fmt(c.convertTaxPaid)}</strong> (at ${(a.rothConvertTax*100).toFixed(0)}% combined rate). Prefer paying tax from taxable brokerage or cash so the full converted amount stays in Roth.</li>
+          <li>By retirement this adds roughly <strong>${fmt(c.extraRothFromConvert)}</strong> to your Roth bucket and reduces Traditional by <strong>${fmt(c.tradReduced)}</strong>.</li>
+          <li>Lower Traditional balance → smaller future RMDs and more flexibility to manage tax brackets and Medicare IRMAA in retirement.</li>
+        </ol>
+        <p class="hint" style="margin-top:0.5rem">Strategy tip: Fill the 12% or 22% federal bracket each year. Avoid conversions that push you into a higher bracket or trigger IRMAA surcharges two years later.</p>
+      `;
+    }
+
+    function renderStrategy(a, p) {
+      const totalTaxRate = a.taxBracket + a.stateTax;
+      const el = document.getElementById("strategy-content");
+      el.innerHTML = `
+        <h3>Recommended withdrawal order (tax-efficient)</h3>
+        <ol>
+          <li><strong>Taxable brokerage</strong> — spend cost basis first (little/no tax). Long-term gains taxed at preferential rates.</li>
+          <li><strong>Traditional / tax-deferred</strong> — withdraw enough to fill lower tax brackets and cover RMDs after 73. Ordinary income tax applies.</li>
+          <li><strong>Roth / tax-free</strong> — preserve for later years or heirs. Qualified withdrawals are tax-free and do not increase Medicare IRMAA or tax on SS.</li>
+        </ol>
+        <p style="margin-top:0.75rem">
+          Combined marginal rate assumed in retirement: <strong>${(totalTaxRate*100).toFixed(1)}%</strong>
+          (fed ${(a.taxBracket*100).toFixed(0)}% + state ${(a.stateTax*100).toFixed(1)}%).
+          Roth share of projected portfolio: <strong>${p.projRetire > 0 ? pct(p.rothProj / p.projRetire) : "0%"}</strong>.
+        </p>
+        <p class="hint" style="margin-top:0.5rem">
+          Pension and Social Security count as ordinary income and can fill lower brackets — coordinate withdrawals and any remaining Roth conversions carefully.
+        </p>
+      `;
+    }
+
+    function buildProjectionChart(a, yrWork, yrRet, buckets) {
+      const yrsTo = Math.max(0, a.retireAge - a.currentAge);
+      const yrsIn = Math.max(0, a.lifeExpect - a.retireAge);
+      const labels = [];
+      const spendData = [];
+      const portData = [];
+
+      // Simple portfolio path: grow to retirement, then withdraw net need
+      let port = buckets.projRetire;
+      let roth = buckets.rothProj;
+      let trad = buckets.tradProj;
+      let taxb = buckets.taxableProj;
+
+      for (let y = 0; y <= yrsTo + Math.min(yrsIn, 30); y++) {
+        const age = a.currentAge + y;
+        labels.push(age);
+        if (y < yrsTo) {
+          spendData.push(inflate(yrWork, a.inflation, y));
+          // still contributing & growing — approximate with overall return
+          // (already projected at retirement, so flat line until then for simplicity)
+          portData.push(null);
+        } else {
+          const spend = inflate(yrRet, a.inflation, y);
+          spendData.push(spend);
+          const ss = inflate(a.ssIncome, a.inflation, y);
+          const pension = inflate(a.pensionIncome, a.inflation, y);
+          const netNeed = Math.max(0, spend - ss - pension);
+
+          // Withdraw in order: taxable → trad → roth
+          let need = netNeed;
+          const fromTax = Math.min(need, taxb);
+          taxb -= fromTax; need -= fromTax;
+          const fromTrad = Math.min(need, trad);
+          trad -= fromTrad; need -= fromTrad;
+          const fromRoth = Math.min(need, roth);
+          roth -= fromRoth;
+
+          port = roth + trad + taxb;
+          // grow remaining
+          const r = a.portfolioReturn;
+          roth *= (1 + r);
+          trad *= (1 + r);
+          taxb *= (1 + r);
+          port = roth + trad + taxb;
+          portData.push(port);
+        }
+      }
+
+      // Fill pre-retirement portfolio path (linear-ish to projected)
+      const startPort = accounts.reduce((s, acc) => s + (acc.balance || 0), 0);
+      for (let y = 0; y < yrsTo; y++) {
+        const t = yrsTo === 0 ? 1 : y / yrsTo;
+        portData[y] = startPort + (buckets.projRetire - startPort) * t;
+      }
+
+      if (projChart) projChart.destroy();
+      const ctx = document.getElementById("projChart").getContext("2d");
+      projChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Annual spending need",
+              data: spendData,
+              borderColor: "#f59e0b",
+              backgroundColor: "rgba(245,158,11,0.1)",
+              fill: true,
+              tension: 0.25,
+              pointRadius: 0,
+            },
+            {
+              label: "Portfolio value",
+              data: portData,
+              borderColor: "#22c55e",
+              backgroundColor: "transparent",
+              tension: 0.25,
+              pointRadius: 0,
+              borderWidth: 2,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: { labels: { color: "#8b9bb4", boxWidth: 12 } },
+            tooltip: {
+              callbacks: {
+                label: (c) => c.dataset.label + ": " + fmt(c.raw),
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: "Age", color: "#8b9bb4" },
+              ticks: { color: "#8b9bb4", maxTicksLimit: 12 },
+              grid: { color: "rgba(45,58,79,0.5)" },
+            },
+            y: {
+              ticks: {
+                color: "#8b9bb4",
+                callback: (v) => "$" + (v / 1000).toFixed(0) + "k",
+              },
+              grid: { color: "rgba(45,58,79,0.5)" },
+            },
+          },
+        },
+      });
+    }
+
+    function buildBucketChart(b) {
+      if (bucketChart) bucketChart.destroy();
+      const ctx = document.getElementById("bucketChart").getContext("2d");
+      const total = b.roth + b.trad + b.taxable;
+      bucketChart = new Chart(ctx, {
+        type: "doughnut",
+        data: {
+          labels: ["Roth / Tax-free", "Traditional", "Taxable"],
+          datasets: [{
+            data: [b.roth, b.trad, b.taxable],
+            backgroundColor: ["#8b5cf6", "#06b6d4", "#f97316"],
+            borderWidth: 0,
+          }],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: { color: "#8b9bb4", boxWidth: 12, padding: 16 },
+            },
+            tooltip: {
+              callbacks: {
+                label: (c) => {
+                  const v = c.raw;
+                  const p = total > 0 ? (v / total * 100).toFixed(1) : 0;
+                  return c.label + ": " + fmt(v) + " (" + p + "%)";
+                },
+              },
+            },
+          },
+        },
+      });
+    }
+
+    function buildYearlyTable(a, yrRetToday, buckets) {
+      const tbody = document.querySelector("#table-yearly tbody");
+      tbody.innerHTML = "";
+      let roth = buckets.roth;
+      let trad = buckets.trad;
+      let taxb = buckets.taxable;
+      const yrsTo = Math.max(0, a.retireAge - a.currentAge);
+      const maxRows = 15;
+
+      for (let i = 0; i < maxRows; i++) {
+        const age = a.retireAge + i;
+        if (age > a.lifeExpect) break;
+        const yFromNow = yrsTo + i;
+        const spend = inflate(yrRetToday, a.inflation, yFromNow);
+        const ss = inflate(a.ssIncome, a.inflation, yFromNow);
+        const pension = inflate(a.pensionIncome, a.inflation, yFromNow);
+        const guaranteed = ss + pension;
+        const netNeed = Math.max(0, spend - guaranteed);
+
+        let need = netNeed;
+        const fromTax = Math.min(need, taxb);
+        taxb -= fromTax; need -= fromTax;
+        const fromTrad = Math.min(need, trad);
+        trad -= fromTrad; need -= fromTrad;
+        const fromRoth = Math.min(need, roth);
+        roth -= fromRoth;
+
+        // rough tax on traditional withdrawals only (simplified)
+        const taxOnWd = fromTrad * (a.taxBracket + a.stateTax);
+
+        // grow remaining
+        const r = a.portfolioReturn;
+        roth *= (1 + r);
+        trad *= (1 + r);
+        taxb *= (1 + r);
+        const endPort = roth + trad + taxb;
+
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${age}</td>
+          <td>${fmt(spend)}</td>
+          <td>${fmt(guaranteed)}</td>
+          <td>${fmt(netNeed)}</td>
+          <td>${fmt(fromRoth)}</td>
+          <td>${fmt(fromTrad)}</td>
+          <td>${fmt(fromTax)}</td>
+          <td>${fmt(taxOnWd)}</td>
+          <td>${fmt(endPort)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    // ---------- LOCAL STORAGE (auto-save) ----------
+    const STORAGE_KEY = "retirement-dashboard-v1";
+
+    function collectAllData() {
+      const assumptions = getAssumptions();
+      // store rates as percentages for readability
+      return {
+        assumptions: {
+          ...assumptions,
+          inflation: assumptions.inflation * 100,
+          portfolioReturn: assumptions.portfolioReturn * 100,
+          taxBracket: assumptions.taxBracket * 100,
+          stateTax: assumptions.stateTax * 100,
+          rothConvertTax: assumptions.rothConvertTax * 100,
+        },
+        expensesWorking,
+        expensesRetire,
+        accounts,
+      };
+    }
+
+    function applyAllData(data) {
+      if (!data) return;
+      if (data.assumptions) {
+        const a = data.assumptions;
+        document.getElementById("currentAge").value = a.currentAge ?? 45;
+        document.getElementById("retireAge").value = a.retireAge ?? 65;
+        document.getElementById("lifeExpect").value = a.lifeExpect ?? 90;
+        document.getElementById("inflation").value = a.inflation ?? 2.5;
+        document.getElementById("portfolioReturn").value = a.portfolioReturn ?? 6.5;
+        document.getElementById("taxBracket").value = a.taxBracket ?? 22;
+        document.getElementById("stateTax").value = a.stateTax ?? 5;
+        document.getElementById("ssIncome").value = a.ssIncome ?? 28000;
+        document.getElementById("pensionIncome").value = a.pensionIncome ?? 0;
+        document.getElementById("rothConvertAmt").value = a.rothConvertAmt ?? 15000;
+        document.getElementById("rothConvertYears").value = a.rothConvertYears ?? 10;
+        document.getElementById("rothConvertTax").value = a.rothConvertTax ?? 22;
+        document.getElementById("rothConvertStartAge").value = a.rothConvertStartAge ?? 55;
+      }
+      if (data.expensesWorking) expensesWorking = data.expensesWorking;
+      if (data.expensesRetire) expensesRetire = data.expensesRetire;
+      if (data.accounts) accounts = data.accounts;
+      renderExpenseTable("working");
+      renderExpenseTable("retirement");
+      renderAccounts();
+    }
+
+    function saveToLocalStorage() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(collectAllData()));
+      } catch (e) {
+        console.warn("Could not save to localStorage", e);
+      }
+    }
+
+    function loadFromLocalStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        applyAllData(data);
+        return true;
+      } catch (e) {
+        console.warn("Could not load from localStorage", e);
+        return false;
+      }
+    }
+
+    function clearSavedData() {
+      if (!confirm("Clear all auto-saved data from this browser? Your current numbers on screen will stay until you refresh.")) return;
+      localStorage.removeItem(STORAGE_KEY);
+      alert("Saved data cleared. Click “Reset defaults” if you also want to restore the original example numbers.");
+    }
+
+    // ---------- CLOUD SYNC (Cloudflare KV via Pages Function) ----------
+    const SYNC_CODE_KEY = "retirement-dashboard-sync-code";
+    const AUTO_CLOUD_KEY = "retirement-dashboard-auto-cloud";
+    let cloudSaveTimer = null;
+    let cloudBusy = false;
+
+    function getSyncCode() {
+      return (document.getElementById("syncCode").value || "").trim();
+    }
+
+    function setCloudStatus(msg, isError) {
+      const el = document.getElementById("cloudSyncStatus");
+      if (!el) return;
+      el.textContent = "Status: " + msg;
+      el.style.color = isError ? "var(--danger)" : "var(--muted)";
+    }
+
+    function generateSyncCode() {
+      const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+      let code = "sync-";
+      for (let i = 0; i < 12; i++) code += chars[Math.floor(Math.random() * chars.length)];
+      document.getElementById("syncCode").value = code;
+      localStorage.setItem(SYNC_CODE_KEY, code);
+      setCloudStatus("New code generated — click “Save to cloud” to upload your numbers");
+    }
+
+    async function cloudSave(silent) {
+      const code = getSyncCode();
+      if (!code || code.length < 8) {
+        if (!silent) alert("Enter a Sync Code (at least 8 characters) or click Generate code.");
+        setCloudStatus("Need a valid Sync Code", true);
+        return false;
+      }
+      if (cloudBusy) return false;
+      cloudBusy = true;
+      if (!silent) setCloudStatus("Saving to Cloudflare…");
+      try {
+        localStorage.setItem(SYNC_CODE_KEY, code);
+        const res = await fetch("/api/sync", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, data: collectAllData() }),
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setCloudStatus(body.error || ("Save failed (" + res.status + ")"), true);
+          if (!silent) alert(body.error || "Could not save to cloud. Check that the Pages Function and KV binding are set up.");
+          return false;
+        }
+        setCloudStatus("Saved to cloud at " + new Date().toLocaleTimeString());
+        return true;
+      } catch (e) {
+        setCloudStatus("Network error — is the site deployed with the /api/sync function?", true);
+        if (!silent) alert("Could not reach the sync API. Make sure you redeployed with the functions folder and bound SYNC_KV.");
+        return false;
+      } finally {
+        cloudBusy = false;
+      }
+    }
+
+    async function cloudLoad(silent) {
+      const code = getSyncCode();
+      if (!code || code.length < 8) {
+        if (!silent) alert("Enter the same Sync Code you used on the other device.");
+        setCloudStatus("Need a valid Sync Code", true);
+        return false;
+      }
+      if (cloudBusy) return false;
+      cloudBusy = true;
+      if (!silent) setCloudStatus("Loading from Cloudflare…");
+      try {
+        localStorage.setItem(SYNC_CODE_KEY, code);
+        const res = await fetch("/api/sync?code=" + encodeURIComponent(code));
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setCloudStatus(body.error || ("Load failed (" + res.status + ")"), true);
+          if (!silent) alert(body.error || "No data found for this code (or API not set up).");
+          return false;
+        }
+        applyAllData(body.data);
+        recalc(); // local save + charts; avoid immediate cloud re-save loop
+        setCloudStatus("Loaded from cloud at " + new Date().toLocaleTimeString());
+        return true;
+      } catch (e) {
+        setCloudStatus("Network error — is the site deployed with the /api/sync function?", true);
+        if (!silent) alert("Could not reach the sync API. Make sure you redeployed with the functions folder and bound SYNC_KV.");
+        return false;
+      } finally {
+        cloudBusy = false;
+      }
+    }
+
+    function onAutoCloudToggle() {
+      const on = document.getElementById("autoCloudSync").checked;
+      localStorage.setItem(AUTO_CLOUD_KEY, on ? "1" : "0");
+      if (on) {
+        setCloudStatus("Auto-save on — changes will upload to Cloudflare shortly after you edit");
+        scheduleCloudSave();
+      } else {
+        setCloudStatus("Auto-save off — use “Save to cloud” manually");
+      }
+    }
+
+    function scheduleCloudSave() {
+      if (!document.getElementById("autoCloudSync")?.checked) return;
+      if (!getSyncCode()) return;
+      clearTimeout(cloudSaveTimer);
+      cloudSaveTimer = setTimeout(() => cloudSave(true), 1500);
+    }
+
+    // ---------- IMPORT / EXPORT / RESET ----------
+    function exportJSON() {
+      const data = collectAllData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "retirement-dashboard.json";
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    async function copyDataToClipboard() {
+      try {
+        const text = JSON.stringify(collectAllData(), null, 2);
+        await navigator.clipboard.writeText(text);
+        alert("Data copied to clipboard.\n\nOn your other device: open the dashboard → click “Paste data”.");
+      } catch (e) {
+        // Fallback for older browsers / non-HTTPS
+        prompt("Copy this text (Ctrl+C / Cmd+C), then paste it on the other device:", JSON.stringify(collectAllData()));
+      }
+    }
+
+    async function pasteDataFromClipboard() {
+      try {
+        let text = "";
+        if (navigator.clipboard && navigator.clipboard.readText) {
+          text = await navigator.clipboard.readText();
+        } else {
+          text = prompt("Paste the JSON data here:");
+          if (text === null) return;
+        }
+        if (!text || !text.trim()) {
+          alert("Clipboard is empty. First click “Copy data” on the other device.");
+          return;
+        }
+        const data = JSON.parse(text);
+        applyAllData(data);
+        recalc();
+        alert("Data pasted and saved on this device.");
+      } catch (e) {
+        // If clipboard read fails (permission), fall back to prompt
+        const text = prompt("Could not read clipboard automatically.\nPaste the JSON data here:");
+        if (text === null) return;
+        try {
+          const data = JSON.parse(text);
+          applyAllData(data);
+          recalc();
+          alert("Data pasted and saved on this device.");
+        } catch (err) {
+          alert("Invalid data. Make sure you copied the full JSON from the other device.");
+        }
+      }
+    }
+
+    function importJSON(ev) {
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target.result);
+          applyAllData(data);
+          recalc(); // also triggers saveToLocalStorage
+        } catch (err) {
+          alert("Could not parse JSON file.");
+        }
+      };
+      reader.readAsText(file);
+      ev.target.value = "";
+    }
+
+    function resetDefaults() {
+      if (!confirm("Reset all inputs to defaults?")) return;
+      document.getElementById("currentAge").value = 45;
+      document.getElementById("retireAge").value = 65;
+      document.getElementById("lifeExpect").value = 90;
+      document.getElementById("inflation").value = 2.5;
+      document.getElementById("portfolioReturn").value = 6.5;
+      document.getElementById("taxBracket").value = 22;
+      document.getElementById("stateTax").value = 5;
+      document.getElementById("ssIncome").value = 28000;
+      document.getElementById("pensionIncome").value = 0;
+      document.getElementById("rothConvertAmt").value = 15000;
+      document.getElementById("rothConvertYears").value = 10;
+      document.getElementById("rothConvertTax").value = 22;
+      document.getElementById("rothConvertStartAge").value = 55;
+      expensesWorking = structuredClone(defaultExpensesWorking);
+      expensesRetire = structuredClone(defaultExpensesRetire);
+      accounts = structuredClone(defaultAccounts);
+      renderExpenseTable("working");
+      renderExpenseTable("retirement");
+      renderAccounts();
+      recalc();
+    }
+
+    // ---------- INIT ----------
+    // Restore sync code + auto-cloud preference
+    const savedCode = localStorage.getItem(SYNC_CODE_KEY);
+    if (savedCode) document.getElementById("syncCode").value = savedCode;
+    const autoCloud = localStorage.getItem(AUTO_CLOUD_KEY) === "1";
+    const autoEl = document.getElementById("autoCloudSync");
+    if (autoEl) autoEl.checked = autoCloud;
+
+    // Load previously saved numbers from this browser (if any)
+    const restored = loadFromLocalStorage();
+    if (!restored) {
+      renderExpenseTable("working");
+      renderExpenseTable("retirement");
+      renderAccounts();
+    }
+    recalc(); // always run calculations (and local save)
+
+    // If auto-cloud is on and we have a code, try loading latest from cloud
+    if (autoCloud && savedCode && savedCode.length >= 8) {
+      setCloudStatus("Checking Cloudflare for latest data…");
+      cloudLoad(true).then((ok) => {
+        if (!ok) setCloudStatus("Using local data (cloud load skipped or empty)");
+      });
+    } else if (savedCode) {
+      setCloudStatus("Sync code restored — click Load or enable Auto-save");
+    }
+  </script>
+</body>
+</html>
